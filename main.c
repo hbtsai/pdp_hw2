@@ -3,6 +3,8 @@
 #include <stdint.h>
 #include <string.h>
 #include <pthread.h>
+#include <limits.h>
+#include <errno.h>
 
 #if defined(_DEBUG)
 #define dprintf(fmt, ...) printf("%s():%d "fmt,__func__,__LINE__,##__VA_ARGS__)
@@ -110,11 +112,19 @@ void *nqueen(void *qdp)//int nBoardSize, int *preset, int *column)
 	pthread_mutex_unlock(&col_lock);
 	
 	free(column);
-	return (void *)count;
 }
 
 int main(int argc, char** argv)
 {
+
+
+	pthread_attr_t pattr;
+	size_t stacksize;
+	pthread_attr_init(&pattr);
+	pthread_attr_getstacksize(&pattr, &stacksize);
+	dprintf("checkpoint stacksize=%u\n", stacksize );
+	pthread_attr_setstacksize(&pattr, PTHREAD_STACK_MIN*1024);
+
 	char buf[1024]={0};
 	int nPresetChess;
 	dprintf("board size --> ");
@@ -173,7 +183,7 @@ int main(int argc, char** argv)
 
 	qd = malloc(sizeof(struct queen_data)*nBoardSize*nBoardSize);
 
-	pthread_t th_a[nBoardSize*nBoardSize];
+	pthread_t *th_a=malloc(sizeof(pthread_t)*nBoardSize*nBoardSize);
 
 	for(p=0; p<nBoardSize*nBoardSize;p++)
 	{
@@ -182,6 +192,7 @@ int main(int argc, char** argv)
 	}
 
 	int b1=-1, b2=-1;
+	int ret=0;
 
 	for(q=0; q<nBoardSize; q++)
 	{
@@ -217,7 +228,17 @@ int main(int argc, char** argv)
 			{
 				qd[k+p*nBoardSize].preset[b1]=p;
 				qd[k+p*nBoardSize].preset[b2]=k;
-				pthread_create(&th_a[k+p*nBoardSize], NULL, &nqueen, &qd[k+p*nBoardSize]);
+				ret = pthread_create(&(th_a[k+p*nBoardSize]), NULL, &nqueen, &qd[k+p*nBoardSize]);
+				if(ret!=0)
+				{
+					while(numThreads>0)
+					{
+						pthread_join(th_a[(k+p*nBoardSize)-numThreads], NULL);
+						numThreads--;
+					}
+				pthread_create(&(th_a[k+p*nBoardSize]), NULL, &nqueen, &qd[k+p*nBoardSize]);
+				}
+
 				numThreads++;
 			}
 		}
@@ -225,10 +246,9 @@ int main(int argc, char** argv)
 
 	for(k=0; k<numThreads; k++)
 	{
-		pthread_join(th_a[k], NULL);
+		pthread_join(th_a[nBoardSize*nBoardSize-k-1], NULL);
 	}
 
-	dprintf("number of threads created = %d\n", numThreads);
 	printf("solution=%llu\n", result);
 
 	for(p=0; p<nBoardSize*nBoardSize; p++)
