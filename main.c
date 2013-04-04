@@ -13,10 +13,11 @@
 const int MAX_NUM_THREADS=48;
 char **theBoard = NULL;
 pthread_mutex_t col_lock = PTHREAD_MUTEX_INITIALIZER; // column lock
+int nBoardSize = 0;
+unsigned long long result=0;
 
 struct queen_data
 {
-	int nBoardSize;
 	int *preset;
 };
 
@@ -58,7 +59,6 @@ void *nqueen(void *qdp)//int nBoardSize, int *preset, int *column)
 	int backward = 0;
 	struct queen_data *qd=(struct queen_data *)qdp;
 
-	int nBoardSize = qd->nBoardSize;
 	int *column = NULL;
 	column = malloc(sizeof(int)*nBoardSize);
 	int *preset = qd->preset;
@@ -104,6 +104,11 @@ void *nqueen(void *qdp)//int nBoardSize, int *preset, int *column)
 
 	}
 
+
+	pthread_mutex_lock(&col_lock);
+	result+=count;
+	pthread_mutex_unlock(&col_lock);
+	
 	free(column);
 	return (void *)count;
 }
@@ -111,7 +116,6 @@ void *nqueen(void *qdp)//int nBoardSize, int *preset, int *column)
 int main(int argc, char** argv)
 {
 	char buf[1024]={0};
-	int nBoardSize;
 	int nPresetChess;
 	dprintf("board size --> ");
 	fgets(buf, sizeof(buf), stdin);
@@ -126,7 +130,6 @@ int main(int argc, char** argv)
 	int *column = NULL;
 	int *presetChesses = NULL;
 	int i,j;
-	column = malloc(sizeof(int)*nBoardSize);
 	presetChesses = malloc(sizeof(int)*nBoardSize);
 	for(i=0; i<nBoardSize; i++)
 	{
@@ -164,59 +167,80 @@ int main(int argc, char** argv)
 	}
 
 
-	int k,q;
-	unsigned long long count=0;
-	unsigned long long result=0;
+	int k=0,q=0,p=0;
 	struct queen_data *qd;
 	int numThreads=0;
 
-	qd = malloc(sizeof(struct queen_data)*nBoardSize);
+	qd = malloc(sizeof(struct queen_data)*nBoardSize*nBoardSize);
 
-	pthread_t th_a[nBoardSize];
-	for(k=0; k<nBoardSize; k++)
+	pthread_t th_a[nBoardSize*nBoardSize];
+
+	for(p=0; p<nBoardSize*nBoardSize;p++)
 	{
-		qd[k].nBoardSize = nBoardSize;
-		qd[k].preset = malloc(sizeof(int)*nBoardSize);
-		memcpy(qd[k].preset, presetChesses, sizeof(int)*nBoardSize);
-		for(q=0; q<nBoardSize; q++)
-		{
-			if(presetChesses[q]<0)
-				break;
-		}
+		qd[p].preset = malloc(sizeof(int)*nBoardSize);
+		memcpy(qd[p].preset, presetChesses, sizeof(int)*nBoardSize);
+	}
 
-		if(q==nBoardSize)
+	int b1=-1, b2=-1;
+
+	for(q=0; q<nBoardSize; q++)
+	{
+		if(presetChesses[q]<0)
 		{
-			pthread_create(&th_a[k], NULL, &nqueen, &qd[k]);
+			if(b1>=0)
+				b2=q;
+			else
+				b1=q;
+		}
+		if(b1>=0 && b2>=0)
+			break;
+	}
+
+	for(p=0; p<nBoardSize; p++)
+	{
+		if(b2<0)
+		{
+			pthread_create(&th_a[k+p], NULL, &nqueen, &qd[k+p]);
 			numThreads++;
 			break;
 		}
-		else
-		{
-			qd[k].preset[q]=k;
-			pthread_create(&th_a[k], NULL, &nqueen, &qd[k]);
-			numThreads++;
-		}
 
+		for(k=0; k<nBoardSize; k++)
+		{
+			if(b1<0)
+			{
+				pthread_create(&th_a[k+p], NULL, &nqueen, &qd[k+p]);
+				numThreads++;
+				break;
+			}
+			else
+			{
+				qd[k+p*nBoardSize].preset[b1]=p;
+				qd[k+p*nBoardSize].preset[b2]=k;
+				pthread_create(&th_a[k+p*nBoardSize], NULL, &nqueen, &qd[k+p*nBoardSize]);
+				numThreads++;
+			}
+		}
 	}
 
 	for(k=0; k<numThreads; k++)
 	{
-		pthread_join(th_a[k], (void **)&count);
-		result += count;
-		free(qd[k].preset);
+		pthread_join(th_a[k], NULL);
+	}
+
+	dprintf("number of threads created = %d\n", numThreads);
+	printf("solution=%llu\n", result);
+
+	for(p=0; p<nBoardSize*nBoardSize; p++)
+	{
+		free(qd[p].preset);
 	}
 	free(qd);
-
-
-//	count = nqueen(nBoardSize, preset, column);
-
-	dprintf("solution=%llu\n", result);
 	for(i=0; i<nBoardSize; i++)
 	{
 		free(theBoard[i]);
 	}
 	free(theBoard);
-	free(column);
 	free(presetChesses);
 
 	return 0;
