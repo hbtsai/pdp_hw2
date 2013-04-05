@@ -122,8 +122,7 @@ int main(int argc, char** argv)
 	size_t stacksize;
 	pthread_attr_init(&pattr);
 	pthread_attr_getstacksize(&pattr, &stacksize);
-	dprintf("checkpoint stacksize=%u\n", stacksize );
-	pthread_attr_setstacksize(&pattr, PTHREAD_STACK_MIN*1024);
+	pthread_attr_setstacksize(&pattr, PTHREAD_STACK_MIN);
 
 	char buf[1024]={0};
 	int nPresetChess;
@@ -211,7 +210,7 @@ int main(int argc, char** argv)
 	{
 		if(b2<0)
 		{
-			pthread_create(&th_a[k+p], NULL, &nqueen, &qd[k+p]);
+			pthread_create(&th_a[k+p], &pattr, &nqueen, &qd[k+p]);
 			numThreads++;
 			break;
 		}
@@ -220,7 +219,7 @@ int main(int argc, char** argv)
 		{
 			if(b1<0)
 			{
-				pthread_create(&th_a[k+p], NULL, &nqueen, &qd[k+p]);
+				pthread_create(&th_a[k+p], &pattr, &nqueen, &qd[k+p]);
 				numThreads++;
 				break;
 			}
@@ -228,7 +227,7 @@ int main(int argc, char** argv)
 			{
 				qd[k+p*nBoardSize].preset[b1]=p;
 				qd[k+p*nBoardSize].preset[b2]=k;
-				ret = pthread_create(&(th_a[k+p*nBoardSize]), NULL, &nqueen, &qd[k+p*nBoardSize]);
+				ret = pthread_create(&(th_a[k+p*nBoardSize]), &pattr, &nqueen, &qd[k+p*nBoardSize]);
 				if(ret!=0)
 				{
 					while(numThreads>0)
@@ -236,7 +235,7 @@ int main(int argc, char** argv)
 						pthread_join(th_a[(k+p*nBoardSize)-numThreads], NULL);
 						numThreads--;
 					}
-				pthread_create(&(th_a[k+p*nBoardSize]), NULL, &nqueen, &qd[k+p*nBoardSize]);
+				pthread_create(&(th_a[k+p*nBoardSize]), &pattr, &nqueen, &qd[k+p*nBoardSize]);
 				}
 
 				numThreads++;
