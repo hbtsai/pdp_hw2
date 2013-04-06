@@ -129,8 +129,8 @@ int main(int argc, char** argv)
 			if(k==nBoardSize)
 			{
 				count++;
-				print_board(theBoard, nBoardSize);
-				printf("luck! backward=%d\n", backward);
+				//print_board(theBoard, nBoardSize);
+				//printf("luck! backward=%d\n", backward);
 			}
 			else
 				continue;
@@ -138,7 +138,7 @@ int main(int argc, char** argv)
 
 		do {
 			k--;
-		} while(preset[k]>=0);
+		} while(k>=0&&preset[k]>=0);
 		if(k<0)
 			break;
 		theBoard[k][column[k]]='X';
@@ -147,7 +147,7 @@ int main(int argc, char** argv)
 
 	}
 
-	dprintf("solution=%d\n", count);
+	printf("solution=%d\n", count);
 	for(i=0; i<nBoardSize; i++)
 	{
 		free(theBoard[i]);

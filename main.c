@@ -248,7 +248,7 @@ int main(int argc, char** argv)
 		pthread_join(th_a[nBoardSize*nBoardSize-k-1], NULL);
 	}
 
-	printf("solution=%llu\n", result);
+	printf("%llu\n", result);
 
 	for(p=0; p<nBoardSize*nBoardSize; p++)
 	{

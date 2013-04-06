@@ -94,7 +94,7 @@ int main(int argc, char** argv)
 			if(k==nBoardSize)
 			{
 				count++;
-				print_board(theBoard, nBoardSize);
+				//print_board(theBoard, nBoardSize);
 			}
 			else
 				continue;
