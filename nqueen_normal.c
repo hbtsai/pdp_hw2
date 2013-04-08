@@ -42,8 +42,8 @@ int safe(int *column, int k)
 int main(int argc, char** argv)
 {
 	char buf[1024]={0};
-	int nBoardSize;
-	int nPresetChess;
+	int nBoardSize=0;
+	int nPresetChess=0;
 	dprintf("board size --> ");
 	fgets(buf, sizeof(buf), stdin);
 	sscanf(buf, "%d", &nBoardSize);	
@@ -67,23 +67,23 @@ int main(int argc, char** argv)
 		}
 	}
 
-	int k,q;
+	int k=0,q=0;
 	int backward=0;
 	int pass=0;
 	int count=0;
 
 	while(k<nBoardSize)
 	{
-			for(q=backward; q<nBoardSize; q++)
+		for(q=backward; q<nBoardSize; q++)
+		{
+			column[k]=q;
+			if(safe(column, k))
 			{
-				column[k]=q;
-				if(safe(column, k))
-				{
-					theBoard[k][column[k]] = 'Q';
-					pass=1;
-					break;
-				}
+				theBoard[k][column[k]] = 'Q';
+				pass=1;
+				break;
 			}
+		}
 
 		backward=0;
 

@@ -103,11 +103,12 @@ int main(int argc, char** argv)
 			column[k]=preset[k];
 			theBoard[k][column[k]] = 'Q';
 			if(safe(column,  k))
+			{
 				pass = 1 ;
+			}
 		}
 		else
 		{
-		
 			for(q=backward; q<nBoardSize; q++)
 			{
 				column[k]=q;
@@ -120,10 +121,10 @@ int main(int argc, char** argv)
 			}
 		}
 
-		backward=0;
 
 		if(pass)
 		{
+			backward=0;
 			k++;
 			pass=0;
 			if(k==nBoardSize)
@@ -133,14 +134,18 @@ int main(int argc, char** argv)
 				//printf("luck! backward=%d\n", backward);
 			}
 			else
+			{
 				continue;
+			}
 		}
 
 		do {
 			k--;
 		} while(k>=0&&preset[k]>=0);
 		if(k<0)
+		{
 			break;
+		}
 		theBoard[k][column[k]]='X';
 		column[k]+=1;
 		backward=column[k];
