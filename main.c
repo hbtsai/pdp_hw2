@@ -12,7 +12,7 @@
 #define dprintf(fmt, ...)
 #endif
 
-const int MAX_NUM_THREADS=48;
+const int MAX_NUM_THREADS=1024;
 char **theBoard = NULL;
 pthread_mutex_t col_lock = PTHREAD_MUTEX_INITIALIZER; // column lock
 int nBoardSize = 0;
@@ -91,9 +91,13 @@ void *nqueen(void *qdp)//int nBoardSize, int *preset, int *column)
 			k++;
 			pass=0;
 			if(k==nBoardSize)
+			{
 				count++;
+			}
 			else
+			{
 				continue;
+			}
 		}
 
 		do {
@@ -182,7 +186,7 @@ int main(int argc, char** argv)
 
 	qd = malloc(sizeof(struct queen_data)*nBoardSize*nBoardSize);
 
-	pthread_t *th_a=malloc(sizeof(pthread_t)*nBoardSize*nBoardSize);
+	pthread_t *th_a=malloc(sizeof(pthread_t)*MAX_NUM_THREADS);
 
 	for(p=0; p<nBoardSize*nBoardSize;p++)
 	{
@@ -206,11 +210,13 @@ int main(int argc, char** argv)
 			break;
 	}
 
+	dprintf("b1=%d, b2=%d\n", b1, b2);
+
 	for(p=0; p<nBoardSize; p++)
 	{
 		if(b2<0)
 		{
-			pthread_create(&th_a[k+p], &pattr, &nqueen, &qd[k+p]);
+			ret = pthread_create(&th_a[numThreads], &pattr, &nqueen, &qd[k*nBoardSize+p]);
 			numThreads++;
 			break;
 		}
@@ -219,33 +225,46 @@ int main(int argc, char** argv)
 		{
 			if(b1<0)
 			{
-				pthread_create(&th_a[k+p], &pattr, &nqueen, &qd[k+p]);
+				pthread_create(&th_a[numThreads], &pattr, &nqueen, &qd[k+p*nBoardSize]);
 				numThreads++;
 				break;
+			}
+			else if(p==k || (p-b1)==(k-b2) || (p+b1)==(k+b2))
+			{
+				continue;
 			}
 			else
 			{
 				qd[k+p*nBoardSize].preset[b1]=p;
 				qd[k+p*nBoardSize].preset[b2]=k;
-				ret = pthread_create(&(th_a[k+p*nBoardSize]), &pattr, &nqueen, &qd[k+p*nBoardSize]);
+				ret = pthread_create(&(th_a[numThreads]), &pattr, &nqueen, &qd[k+p*nBoardSize]);
 				if(ret!=0)
 				{
+					perror("pthread_create:");
 					while(numThreads>0)
 					{
-						pthread_join(th_a[(k+p*nBoardSize)-numThreads], NULL);
 						numThreads--;
+						pthread_join(th_a[numThreads], NULL);
 					}
-				pthread_create(&(th_a[k+p*nBoardSize]), &pattr, &nqueen, &qd[k+p*nBoardSize]);
+					pthread_create(&(th_a[numThreads]), &pattr, &nqueen, &qd[k+p*nBoardSize]);
 				}
 
 				numThreads++;
+				if(numThreads==MAX_NUM_THREADS)
+				{
+					while(numThreads>0)
+					{
+						numThreads--;
+						pthread_join(th_a[numThreads], NULL);
+					}
+				}
 			}
 		}
 	}
 
 	for(k=0; k<numThreads; k++)
 	{
-		pthread_join(th_a[nBoardSize*nBoardSize-k-1], NULL);
+		pthread_join(th_a[k], NULL);
 	}
 
 	printf("%llu\n", result);
